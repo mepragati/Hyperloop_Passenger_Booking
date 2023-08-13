@@ -3,6 +3,8 @@
 #include<vector>
 #include<map>
 #include<queue>
+#include<fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -171,20 +173,19 @@ class compare
         }
 };
 
-void addPassenger(int noOfPassengers)
+void addPassenger(string passengerName,int age,string destination)
 {
     queue<PassengerDetails> passengersQueue;
     priority_queue<PassengerDetails,vector<PassengerDetails>,compare> passengersAgeQueue;
 
-    while(noOfPassengers--)
-    {
-        PassengerDetails p;
-        cin>>p.name>>p.age>>p.destination;
-        passengersQueue.push(p);
-        passengersAgeQueue.push(p);
-        // cout<<"Printing Details:"<<passengersQueue.front().name<<" "<<passengersQueue.front().age<<" "<<passengersQueue.front().destination<<" "<<passengersQueue.front().inQueue;
-        // passengersQueue.pop();
-    }
+    PassengerDetails p;
+    p.name = passengerName;
+    p.age = age;
+    p.destination = destination;
+    
+    passengersQueue.push(p);
+    passengersAgeQueue.push(p);
+        
     cout<<"Printing Details from Heap:"<<passengersAgeQueue.top().name<<" "<<passengersAgeQueue.top().age<<" "<<passengersAgeQueue.top().destination<<" "<<passengersAgeQueue.top().inQueue<<endl;
     cout<<endl<<"Printing Queue size: "<<passengersQueue.size();
 }
@@ -192,16 +193,46 @@ void addPassenger(int noOfPassengers)
 int main()
 {
     cout<<"WELCOME TO HYPERLOOP PASSENGER BOOKING!!"<<endl;
-    // string command;
-    // int N;
-    // string startStation;
+    
+    ifstream inputFile ("input.txt");
+    string line;
 
-    // // cin>>command>>N>>startStation;
-    // cin>>N>>startStation;
-    // // if(command == "INIT")
-    //     init(N,startStation);
-    int N;
-    cin>>N;
-    addPassenger(N);
+    while (getline(inputFile, line)) {
+        istringstream iss(line);
+        cout<<"Line: "<<line<<endl;
+        string command;
+        iss >> command;
+        cout<<"Command: "<<command<<endl;
+        if (command == "INIT") {
+            int lineCount;
+            string source;
+            iss >> lineCount >> source;
+            cout<<"Printing INIT: "<<lineCount<<" "<<source<<endl;
+            //Call the init function here and pass count and source
+        } else if (command == "ADD_PASSENGER") {
+            int passengerCount;
+            iss >> passengerCount;
+            cout<<"Printing PassengerCount: "<<passengerCount<<endl;
+            for (int i = 0; i < passengerCount; ++i) {
+                string passengerName;
+                int age;
+                string destination;
+                iss>>passengerName >> age >> destination;
+                cout<<"Printing Add Passenger: "<<passengerName<<" "<<age<<" "<<destination<<endl;
+                //Call addPassenger function here
+                // addPassenger(passengerName,age,destination);
+            }
+        } else if (command == "START_POD") {
+            int podNumber;
+            iss>>podNumber;
+            cout<<"Printing POD count: "<<podNumber<<endl;
+            // Process START_POD command
+        } else if (command == "PRINT_Q") {
+            // Print passenger queue if needed
+            //Print no of element and all the element 
+        }
+    }
+    inputFile.close();
+
     return 0;
 }
