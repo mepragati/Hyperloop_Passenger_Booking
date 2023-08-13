@@ -2,111 +2,101 @@
 #include<string.h>
 #include<vector>
 #include<map>
-#include<queue>
+#include<string>
 #include<fstream>
-#include <sstream>
+#include<sstream>
+#include<queue>
 
 using namespace std;
+bool INIT_DONE = false;
+int NO_PARENT = -1;
+map<int,string> index_stations;
+map<string,int> stations_index;
+map<string,string> route;
+string source_Station;
 
 class PassengerDetails
 {
-    public:
+	public:
         string name;
         int age;
         string destination;
-        bool inQueue = true;
+        bool inQueue;
+        PassengerDetails(string name, string destination, int age){
+        	this->name = name;
+        	this->destination = destination;
+        	this->age = age;
+        	this->inQueue = true;
+		}
+} ;
+
+class compare
+{
+    public:
+        bool operator()(PassengerDetails *a,PassengerDetails *b)
+        {
+            return a->age < b->age;
+        }
 };
 
-int NO_PARENT = -1;
-map<string,string> route;
- 
-// Function to print shortest path
-// from source to currentVertex
-// using parents array
-void printPath(int currentVertex, vector<int> parents)
+queue<PassengerDetails*> passengersQueue;
+priority_queue<PassengerDetails*,vector<PassengerDetails*>,compare> passengersAgeQueue;
+
+void addPassenger(string passengerName,int age,string destination)
+{
+
+    PassengerDetails *p = new PassengerDetails(passengerName, destination, age);
+    
+    passengersQueue.push(p);
+    passengersAgeQueue.push(p);
+}
+void printPath(int currentVertex, vector<int> parents, string &path)
 {
  
-    // Base case : Source node has
-    // been processed
     if (currentVertex == NO_PARENT) {
         return;
     }
-    printPath(parents[currentVertex], parents);
-    cout <<char(currentVertex+'A') << " ";
-    // return char(currentVertex+'A');
+    printPath(parents[currentVertex], parents, path);
+    path += index_stations[currentVertex] +" ";
 }
 
-// A utility function to print
-// the constructed distances
-// array and shortest paths
 void printSolution(int startVertex, vector<int> distances,
                    vector<int> parents)
 {
     int nVertices = distances.size();
-    cout << "Vertex\t Distance\tPath";
- 
     for (int vertexIndex = 0; vertexIndex < nVertices;
          vertexIndex++) {
         if (vertexIndex != startVertex) {
-            cout << "\n" << char(startVertex+'A') << " -> ";
-            cout << char(vertexIndex+'A') << " \t\t ";
-            cout << distances[vertexIndex] << "\t\t";
-            // route.insert(pair<string,string>(char(vertexIndex+'A'),printPath(vertexIndex, parents)));
-            printPath(vertexIndex, parents);
+            string path;
+            printPath(vertexIndex, parents, path);
+            route[index_stations[vertexIndex]] = path;
         }
     }
 }
  
-// Function that implements Dijkstra's
-// single source shortest path
-// algorithm for a graph represented
-// using adjacency matrix
-// representation
  
 void dijkstra(vector<vector<int> > adjacencyMatrix,
-              int startVertex)
-{
+              int startVertex) {
     int nVertices = adjacencyMatrix[0].size();
  
-    // shortestDistances[i] will hold the
-    // shortest distance from src to i
     vector<int> shortestDistances(nVertices);
  
-    // added[i] will true if vertex i is
-    // included / in shortest path tree
-    // or shortest distance from src to
-    // i is finalized
     vector<bool> added(nVertices);
  
-    // Initialize all distances as
-    // INFINITE and added[] as false
     for (int vertexIndex = 0; vertexIndex < nVertices;
          vertexIndex++) {
         shortestDistances[vertexIndex] = INT_MAX;
         added[vertexIndex] = false;
     }
  
-    // Distance of source vertex from
-    // itself is always 0
     shortestDistances[startVertex] = 0;
  
-    // Parent array to store shortest
-    // path tree
     vector<int> parents(nVertices);
  
-    // The starting vertex does not
-    // have a parent
     parents[startVertex] = NO_PARENT;
  
-    // Find shortest path for all
-    // vertices
     for (int i = 1; i < nVertices; i++) {
  
-        // Pick the minimum distance vertex
-        // from the set of vertices not yet
-        // processed. nearestVertex is
-        // always equal to startNode in
-        // first iteration.
         int nearestVertex = -1;
         int shortestDistance = INT_MAX;
         for (int vertexIndex = 0; vertexIndex < nVertices;
@@ -120,13 +110,8 @@ void dijkstra(vector<vector<int> > adjacencyMatrix,
             }
         }
  
-        // Mark the picked vertex as
-        // processed
         added[nearestVertex] = true;
  
-        // Update dist value of the
-        // adjacent vertices of the
-        // picked vertex.
         for (int vertexIndex = 0; vertexIndex < nVertices;
              vertexIndex++) {
             int edgeDistance
@@ -142,52 +127,74 @@ void dijkstra(vector<vector<int> > adjacencyMatrix,
             }
         }
     }
- 
     printSolution(startVertex, shortestDistances, parents);
 }
 
-void init(int N,string startStation)
-{
-    vector<vector<int>> matrix(N, vector<int>(N));
-    cout<<"Enter the path in form of matrix here: "<<endl;
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            cin >> matrix[i][j];
-               
-    // vector<vector<int> > matrix
-    //     = { {0,3,7,0,0},
-    //     {0,0,2,2,5},
-    //     {0,0,0,0,1},
-    //     {0,0,0,0,3},
-    //     {0,0,0,0,0}};
+
+void init(int N,string startStation, ifstream &ifs) {
+    int k = 0;
+    string a, b;
+    int dis;
+    vector<vector<int> > input;
+
+    stations_index[startStation] = k++;
+	index_stations[k] = startStation;
+    for (int i = 0; i < N; ++i) {
+    	string in;
+    	vector<string> input1;
+        getline(ifs, in);
+        istringstream iss(in);
+    	iss>>a;
+    	iss>>b;
+    	iss>>dis;
+    	if(stations_index.find(a) == stations_index.end()){
+    		stations_index[a] = k;
+		    index_stations[k++] = a;
+		}
+		if(stations_index.find(b) == stations_index.end()){
+    		stations_index[b] = k;
+		    index_stations[k++] = b;
+		}
+		vector<int> temp(3);
+		temp[0] = stations_index[a];
+		temp[1] = stations_index[b];
+		temp[2] = dis;
+        input.push_back(temp);
+	}
+
+    vector<vector<int> > matrix(k, vector<int>(k));
+    for (int i = 0; i < input.size(); i++) {
+        matrix[input[i][0]][input[i][1]] = input[i][2];
+	}
 
     dijkstra(matrix, 0);
 }
 
-class compare
-{
-    public:
-        bool operator()(PassengerDetails a,PassengerDetails b)
-        {
-            return a.age < b.age;
-        }
-};
+void startPOD(int np){
+	if(passengersAgeQueue.size() < np)
+		return;
+	while(np--){
+		PassengerDetails* p = passengersAgeQueue.top();
+		passengersAgeQueue.pop();
+		cout<<p->name<<" "<<source_Station<<route[p->destination]<<endl;
+		p->inQueue = false;
+	}
+}
 
-void addPassenger(string passengerName,int age,string destination)
-{
-    queue<PassengerDetails> passengersQueue;
-    priority_queue<PassengerDetails,vector<PassengerDetails>,compare> passengersAgeQueue;
-
-    PassengerDetails p;
-    p.name = passengerName;
-    p.age = age;
-    p.destination = destination;
-    
-    passengersQueue.push(p);
-    passengersAgeQueue.push(p);
-        
-    cout<<"Printing Details from Heap:"<<passengersAgeQueue.top().name<<" "<<passengersAgeQueue.top().age<<" "<<passengersAgeQueue.top().destination<<" "<<passengersAgeQueue.top().inQueue<<endl;
-    cout<<endl<<"Printing Queue size: "<<passengersQueue.size();
+void printQ(void){
+	int size_q = passengersQueue.size();
+	int size_q2 = passengersAgeQueue.size();
+	cout<<size_q2<<endl;
+	while(size_q--){
+		PassengerDetails* p = passengersQueue.front();
+		passengersQueue.pop();
+		if(p->inQueue){
+			cout<<p->name<<" "<<p->age<<endl;
+			passengersQueue.push(p);
+		}
+		else
+			delete p;
+	}
 }
 
 int main()
@@ -199,37 +206,43 @@ int main()
 
     while (getline(inputFile, line)) {
         istringstream iss(line);
-        cout<<"Line: "<<line<<endl;
         string command;
         iss >> command;
-        cout<<"Command: "<<command<<endl;
         if (command == "INIT") {
             int lineCount;
-            string source;
-            iss >> lineCount >> source;
-            cout<<"Printing INIT: "<<lineCount<<" "<<source<<endl;
-            //Call the init function here and pass count and source
+            iss >> lineCount >> source_Station;
+                route[source_Station] = source_Station;
+            init(lineCount, source_Station, inputFile);
+            INIT_DONE = true;
         } else if (command == "ADD_PASSENGER") {
+        	if(!INIT_DONE)
+        		cout<<"INIT not done"<<endl;
             int passengerCount;
             iss >> passengerCount;
-            cout<<"Printing PassengerCount: "<<passengerCount<<endl;
             for (int i = 0; i < passengerCount; ++i) {
+            	string line_add;
+            	getline(inputFile, line_add);
+        		istringstream iss2(line_add);
+
                 string passengerName;
                 int age;
                 string destination;
-                iss>>passengerName >> age >> destination;
-                cout<<"Printing Add Passenger: "<<passengerName<<" "<<age<<" "<<destination<<endl;
-                //Call addPassenger function here
-                // addPassenger(passengerName,age,destination);
+                iss2>>passengerName >> age >> destination;
+                
+                addPassenger(passengerName,age,destination);
             }
         } else if (command == "START_POD") {
+        	if(!INIT_DONE)
+        		cout<<"INIT not done"<<endl;
             int podNumber;
             iss>>podNumber;
-            cout<<"Printing POD count: "<<podNumber<<endl;
-            // Process START_POD command
+            startPOD(podNumber);
         } else if (command == "PRINT_Q") {
-            // Print passenger queue if needed
-            //Print no of element and all the element 
+        	if(!INIT_DONE)
+        		cout<<"INIT not done"<<endl;
+            int queueNumber;
+            iss>>queueNumber;
+            printQ();
         }
     }
     inputFile.close();
